@@ -47,7 +47,18 @@ main() {
         error "Failed to setup DBT"
         return 1
     fi
-    
+
+    # The current DUNE nightly provides its 'systems' package for AlmaLinux 9,
+    # while DBT automatically detects AlmaLinux 10 on AlmaLinux 10 hosts. 
+    #Override the target only on AlmaLinux 10.
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        if [ "${ID}" = "almalinux" ] && [[ "${VERSION_ID}" == 10* ]]; then
+            export DBT_ARCH=linux-almalinux9-x86_64
+            log "AlmaLinux 10 detected; setting DBT_ARCH=${DBT_ARCH}"
+        fi
+    fi
+        
     # Create DAQ project
     log "Creating DAQ project: ${PROJECT_NAME}..."
     if ! dbt-create -n last_fddaq "${PROJECT_NAME}"; then
