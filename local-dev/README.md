@@ -1,6 +1,7 @@
 Note these instructions are currently a mashup between ubuntu 24.04 and AlmaLinux 10.
 
-sudo dnf install glibc-devel # FOR ALMALINUX 10
+sudo dnf install glibc-devel # FOR ALMALINUX 10 (if running dbt-build)
+sudo dnf install openssl-devel # FOR ALMALINUX 10 (if running dbt-build)
 
 wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
 sudo dpkg -i cvmfs-release-latest_all.deb
