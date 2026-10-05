@@ -17,9 +17,9 @@ local-dev/
 
 ## Creating a workspace
 
-The scripts need `/cvmfs` (see [CVMFS setup](#cvmfs-setup)) and an AlmaLinux 9
-environment. Either run them on an Alma 9 host, or open `local-dev/` in VS Code
-and use **Dev Containers: Reopen in Container**, then run them from its terminal.
+The scripts need `/cvmfs` (see [CVMFS setup](#cvmfs-setup)) and run in the
+Alma 9 devcontainer. Open `local-dev/` in VS Code, use **Dev Containers: Reopen
+in Container**, and run them from its terminal.
 
 ```bash
 # Latest nightly, default profile (drunc-minimal)
@@ -142,33 +142,30 @@ Install it yourself if you want it.
 
 ## CVMFS setup
 
-Note these instructions are currently a mashup between ubuntu 24.04 and AlmaLinux 10.
+The host needs only a CVMFS client and a container runtime (Docker or Podman).
+Everything that builds runs inside the Alma 9 devcontainer, so the host's
+Linux distribution doesn't matter.
 
-```bash
-sudo dnf install glibc-devel # FOR ALMALINUX 10 (if running dbt-build)
-sudo dnf install openssl-devel # FOR ALMALINUX 10 (if running dbt-build)
+1. Install the CVMFS client with your distribution's package manager,
+   following the [CVMFS quick start](https://cvmfs.readthedocs.io/en/stable/cpt-quickstart.html).
 
-wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
-sudo dpkg -i cvmfs-release-latest_all.deb
-rm -f cvmfs-release-latest_all.deb
+2. Configure it for the DUNE DAQ repositories:
 
-# Update package index and install CVMFS
-sudo apt-get update
-sudo apt-get install -y cvmfs
+   ```bash
+   sudo cvmfs_config setup
+   sudo tee /etc/cvmfs/default.local << 'EOF'
+   CVMFS_REPOSITORIES=dunedaq.opensciencegrid.org,dunedaq-development.opensciencegrid.org
+   CVMFS_CLIENT_PROFILE=single
+   EOF
+   ```
 
-sudo cvmfs_config setup
+3. Check that it works (listing a repository mounts it):
 
-sudo nano /etc/cvmfs/default.local
-CVMFS_REPOSITORIES=dunedaq.opensciencegrid.org,dunedaq-development.opensciencegrid.org
-CVMFS_CLIENT_PROFILE=single
-
-# Test installation
-cvmfs_config probe
-
-# Try accessing DUNE DAQ repositories (this will mount them)
-ls /cvmfs/dunedaq.opensciencegrid.org/
-ls /cvmfs/dunedaq-development.opensciencegrid.org/
-```
+   ```bash
+   cvmfs_config probe
+   ls /cvmfs/dunedaq.opensciencegrid.org/
+   ls /cvmfs/dunedaq-development.opensciencegrid.org/
+   ```
 
 ## Notes
 
