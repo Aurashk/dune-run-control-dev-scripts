@@ -1,0 +1,16 @@
+{
+  // local-dev/ itself (the bootstrap container) should not index or watch the
+  // workspaces created under it: each has its own .venv, build and repos.
+  "files.watcherExclude": {
+    "**/workspaces/**": true
+  },
+  "search.exclude": {
+    "workspaces": true
+  },
+  "python.analysis.exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "workspaces"
+  ]
+}
