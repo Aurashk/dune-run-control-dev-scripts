@@ -17,9 +17,20 @@ local-dev/
 
 ## Creating a workspace
 
-The scripts need `/cvmfs` (see [CVMFS setup](#cvmfs-setup)) and run in the
-Alma 9 devcontainer. Open `local-dev/` in VS Code, use **Dev Containers: Reopen
-in Container**, and run them from its terminal.
+The scripts need `/cvmfs` (see [CVMFS setup](#cvmfs-setup)) and AlmaLinux 9,
+which the DAQ releases are built for. Run them straight from a terminal on any
+Linux host. If the host isn't Alma 9, they re-run themselves in the
+devcontainer's Alma 9 image with docker or podman. cvmfs, this repo and the
+output directory are mounted at their host paths, so the workspace works
+from both the host and its devcontainer.
+
+- `DRUNC_DEV_CONTAINER=always|never` forces or disables the container
+  (default `auto`).
+- `DRUNC_CONTAINER_RUNTIME=podman` picks the runtime (default: docker, then
+  podman).
+
+With rootful docker, files the container creates are owned by root on the
+host. Rootless podman creates them as your user.
 
 ```bash
 # Latest nightly, default profile (drunc-minimal)

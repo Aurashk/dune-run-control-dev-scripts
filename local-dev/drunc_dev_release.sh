@@ -15,5 +15,6 @@ set -o pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/lib/common.sh"
 
 parse_args release "$@"
+ensure_alma9 "$@"
 ensure_clean_env "$@"
 create_workspace

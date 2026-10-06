@@ -81,6 +81,70 @@ load_profile() {
 }
 
 # -----------------------------------------------------------------------------
+# ensure_alma9 "$@"
+#
+# DAQ releases are built for AlmaLinux 9, and dbt picks its spack target from
+# the host OS, so on anything else (e.g. Alma 10) dbt-create fails. Re-run the
+# calling script in the devcontainer's Alma 9 image instead, with cvmfs, this
+# repo and the workspaces directory mounted at their host paths: the work area
+# contains absolute paths, so it must be created where it will be used.
+#
+# DRUNC_DEV_CONTAINER=auto (default) | always | never
+# DRUNC_CONTAINER_RUNTIME=docker | podman (default: whichever is installed)
+# -----------------------------------------------------------------------------
+is_alma9() {
+    [[ -f /etc/os-release ]] || return 1
+    (source /etc/os-release && [[ "${ID}" == almalinux && "${VERSION_ID}" == 9* ]])
+}
+
+ensure_alma9() {
+    local mode="${DRUNC_DEV_CONTAINER:-auto}"
+    case "${mode}" in
+        never) return 0 ;;
+        auto)  is_alma9 && return 0 ;;
+        always) ;;
+        *) die "DRUNC_DEV_CONTAINER must be auto, always or never" ;;
+    esac
+
+    local runtime="${DRUNC_CONTAINER_RUNTIME:-}"
+    if [[ -z "${runtime}" ]]; then
+        runtime="$(command -v docker || command -v podman)" \
+            || die "This host is not AlmaLinux 9 and neither docker nor podman is installed to run the Alma 9 image"
+    fi
+
+    local image
+    image="$(sed -n 's/^ *"image": *"\([^"]*\)".*/\1/p' "${DEVCONTAINER_DIR}/devcontainer.json")"
+    [[ -n "${image}" ]] || die "Could not read the image from ${DEVCONTAINER_DIR}/devcontainer.json"
+
+    local cvmfs_repo mounts=()
+    for cvmfs_repo in dunedaq.opensciencegrid.org dunedaq-development.opensciencegrid.org; do
+        [[ -d "/cvmfs/${cvmfs_repo}" ]] || die "/cvmfs/${cvmfs_repo} is not mounted (see README.md, CVMFS setup)"
+        mounts+=(-v "/cvmfs/${cvmfs_repo}:/cvmfs/${cvmfs_repo}:ro")
+    done
+
+    local repo_dir workspaces_dir
+    repo_dir="$(readlink -f "${LOCAL_DEV_DIR}/..")"
+    mkdir -p "${WORKSPACES_DIR}"
+    workspaces_dir="$(readlink -f "${WORKSPACES_DIR}")"
+    mounts+=(-v "${repo_dir}:${repo_dir}")
+    [[ "${workspaces_dir}/" == "${repo_dir}/"* ]] || mounts+=(-v "${workspaces_dir}:${workspaces_dir}")
+
+    local tty=()
+    [[ -t 0 && -t 1 ]] && tty=(-t)
+
+    log "Not on AlmaLinux 9: running in ${image} with $(basename "${runtime}")"
+    log "(the first run pulls the image, which takes a while)"
+    # --output-dir last, as the absolute path: the last one given wins
+    exec "${runtime}" run --rm -i "${tty[@]}" \
+        --userns=host --security-opt label=disable \
+        "${mounts[@]}" \
+        -e DRUNC_DEV_CONTAINER=never \
+        ${DRUNC_GIT_BASE_URL:+-e "DRUNC_GIT_BASE_URL=${DRUNC_GIT_BASE_URL}"} \
+        "${image}" \
+        bash "$(readlink -f "$0")" "$@" --output-dir "${workspaces_dir}"
+}
+
+# -----------------------------------------------------------------------------
 # ensure_clean_env "$@"
 #
 # dbt-create refuses to run where a work area environment is already loaded,
