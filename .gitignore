@@ -1,2 +1,7 @@
 # Workspaces created by local-dev/drunc_dev_*.sh (one DAQ release each)
 local-dev/workspaces/
+
+# hep-cluster-testing: results copied back by run_integtest_hep.sh, and
+# personal settings (see hep.conf.example)
+hep-cluster-testing/results/
+hep-cluster-testing/hep.conf

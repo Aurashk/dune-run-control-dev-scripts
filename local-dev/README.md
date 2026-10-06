@@ -213,11 +213,9 @@ Linux distribution doesn't matter.
 - You need to run `dbt-build` in order to run boot on unified shell (the
   scripts do this for you).
 
-### Setting up on the HEP cluster
+### Running the integration tests on a cluster
 
-The scripts need `lib/`, `profiles/`, `templates/` and `.devcontainer/`, so copy
-the whole directory:
-
-```bash
-rsync -a --exclude workspaces local-dev/ akarimi1@lx04.hep.ph.ic.ac.uk:local-dev/
-```
+[`hep-cluster-testing/run_integtest_hep.sh`](../hep-cluster-testing/README.md)
+runs the integration tests on a cluster node, in this devcontainer's image, at
+the commits checked out in a workspace. It copies these scripts to the cluster
+and creates the work areas there itself.

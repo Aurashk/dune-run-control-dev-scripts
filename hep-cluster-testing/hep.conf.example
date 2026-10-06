@@ -1,0 +1,19 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # read by run_integtest_hep.sh
+# Settings for run_integtest_hep.sh. Copy to hep.conf (git-ignored) and fill in:
+#   cp hep.conf.example hep.conf
+
+# Your username on the cluster
+HEP_USER=""
+
+# Login node to run on. Key-based SSH to it must work without a password.
+HEP_HOST=""          # e.g. lx04.hep.ph.ic.ac.uk
+
+# A large directory you own on the cluster, mounted on HEP_HOST. It holds the
+# container image (~6 GB), one dbt work area per release (several GB each) and
+# the test output. Home directories and /tmp are usually too small.
+HEP_STORAGE_DIR=""   # e.g. /vols/dune/<user>
+
+# Optional: the local workspace to test when neither -w nor -r is given.
+# Absolute, or relative to this directory.
+HEP_DEFAULT_WORKSPACE=""   # e.g. ../local-dev/workspaces/<release>_<profile>
