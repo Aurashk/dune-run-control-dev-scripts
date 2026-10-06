@@ -84,6 +84,36 @@ The work area and its `.venv` contain absolute paths, so the devcontainer mounts
 the workspace at the same path as on the host. Don't move a workspace after
 creating it.
 
+### Verifying the host-to-container hand-off
+
+The latest-nightly flow was verified from an AlmaLinux 10 host with rootless
+Podman on 2026-10-06, using
+`ghcr.io/dune-daq/nightly-release-alma9:development_v5`. It ended with
+`Setup completed successfully!`, all workspace entries were owned by the host
+user, and both Python packages imported from their local checkouts.
+
+To check a created workspace, run the following from its directory on the host:
+
+```bash
+workspace="$PWD"
+# No output means every entry is owned by your host user.
+find "$workspace" ! -uid "$(id -u)" -print
+
+podman run --rm --entrypoint /bin/bash --userns=host --security-opt label=disable \
+  -v /cvmfs/dunedaq.opensciencegrid.org:/cvmfs/dunedaq.opensciencegrid.org:ro \
+  -v /cvmfs/dunedaq-development.opensciencegrid.org:/cvmfs/dunedaq-development.opensciencegrid.org:ro \
+  -v "$workspace:$workspace" \
+  ghcr.io/dune-daq/nightly-release-alma9:development_v5 \
+  -c 'cd "$1" && source env.sh >/dev/null 2>&1 && python -c "import drunc, druncschema; print(drunc.__file__, druncschema.__file__)"' \
+  bash "$workspace"
+```
+
+The import paths must be under this workspace's `pythoncode/drunc/` and
+`sourcecode/druncschema/`, not the release's installed packages. The explicit
+entrypoint override is required because this image's entrypoint is already
+`/bin/bash`; passing another `bash` as its command would try to execute the
+shell binary as a script.
+
 ### Rebuilding
 
 Use `dbt-build --skip-python-install`. A plain `dbt-build` reinstalls the
