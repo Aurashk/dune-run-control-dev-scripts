@@ -134,14 +134,17 @@ ensure_alma9() {
 
     log "Not on AlmaLinux 9: running in ${image} with $(basename "${runtime}")"
     log "(the first run pulls the image, which takes a while)"
-    # --output-dir last, as the absolute path: the last one given wins
+    # The image's entrypoint is /bin/bash, so set it explicitly rather than
+    # passing "bash" as the command. --output-dir goes last, as the absolute
+    # path: the last one given wins.
     exec "${runtime}" run --rm -i "${tty[@]}" \
+        --entrypoint /bin/bash \
         --userns=host --security-opt label=disable \
         "${mounts[@]}" \
         -e DRUNC_DEV_CONTAINER=never \
         ${DRUNC_GIT_BASE_URL:+-e "DRUNC_GIT_BASE_URL=${DRUNC_GIT_BASE_URL}"} \
         "${image}" \
-        bash "$(readlink -f "$0")" "$@" --output-dir "${workspaces_dir}"
+        "$(readlink -f "$0")" "$@" --output-dir "${workspaces_dir}"
 }
 
 # -----------------------------------------------------------------------------
