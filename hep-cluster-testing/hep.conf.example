@@ -17,3 +17,7 @@ HEP_STORAGE_DIR=""   # e.g. /vols/dune/<user>
 # Optional: the local workspace to test when neither -w nor -r is given.
 # Absolute, or relative to this directory.
 HEP_DEFAULT_WORKSPACE=""   # e.g. ../local-dev/workspaces/<release>_<profile>
+
+# Optional: parallel dbt-build jobs on the cluster (default: 8). Login nodes
+# cap memory per user (16 GiB on lx04), and one compile per CPU runs out of it.
+HEP_BUILD_JOBS=""

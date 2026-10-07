@@ -110,11 +110,14 @@ HEP_USER=""
 HEP_HOST=""
 HEP_STORAGE_DIR=""
 HEP_DEFAULT_WORKSPACE=""
+HEP_BUILD_JOBS=""
 # shellcheck source=hep.conf.example
 source "${CONFIG_FILE}"
 for setting in HEP_USER HEP_HOST HEP_STORAGE_DIR; do
     [[ -n "${!setting}" ]] || die "${setting} is not set in ${CONFIG_FILE}"
 done
+HEP_BUILD_JOBS="${HEP_BUILD_JOBS:-8}"
+[[ "${HEP_BUILD_JOBS}" =~ ^[1-9][0-9]*$ ]] || die "HEP_BUILD_JOBS must be a positive number"
 REMOTE_TARGET="${HEP_USER}@${HEP_HOST}"
 REMOTE_SCRIPTS_DIR="${HEP_STORAGE_DIR}/drunc-dev-scripts"
 
@@ -181,7 +184,7 @@ if [[ -n "${WORKSPACE}" ]]; then
 fi
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
-remote_args=(--storage-dir "${HEP_STORAGE_DIR}" --run-id "${RUN_ID}")
+remote_args=(--storage-dir "${HEP_STORAGE_DIR}" --run-id "${RUN_ID}" --jobs "${HEP_BUILD_JOBS}")
 [[ -n "${RELEASE_TAG}" ]]  && remote_args+=(--release "${RELEASE_TAG}")
 [[ -n "${RELEASE_BASE}" ]] && remote_args+=(--base "${RELEASE_BASE}")
 [[ -n "${PROFILE}" ]]      && remote_args+=(--profile "${PROFILE}")
