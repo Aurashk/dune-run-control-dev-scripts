@@ -36,8 +36,9 @@ host. Rootless podman creates them as your user.
 # Latest nightly, default profile (drunc-minimal)
 ./drunc_dev_latest_nightly.sh
 
-# Latest nightly with drunc's built dependencies too
-./drunc_dev_latest_nightly.sh --profile drunc-full
+# Latest nightly with drunc's built dependencies too, with 2 build jobs
+# (dbt-build defaults to one per CPU, which can run out of memory)
+./drunc_dev_latest_nightly.sh --profile drunc-full -j 2
 
 # A stable release; repos are checked out at the commits it was built from
 ./drunc_dev_release.sh --list
