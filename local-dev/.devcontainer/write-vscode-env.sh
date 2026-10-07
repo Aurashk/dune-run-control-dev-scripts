@@ -1,5 +1,6 @@
 #!/bin/bash
-# Snapshot a dbt work area's PATH, PYTHONPATH and LD_LIBRARY_PATH into
+# Snapshot a dbt work area's PATH, PYTHONPATH, LD_LIBRARY_PATH and DUNEDAQ_*PATH
+# (conffwk finds schemas and configs through DUNEDAQ_DB_PATH) into
 # <workarea>/vscode.env. The Python extension (Pylance, test discovery,
 # debugger) does not source ~/.bashrc, so it reads them via python.envFile.
 #
@@ -20,7 +21,7 @@ fi
 # Clean environment, so the snapshot is exactly what env.sh sets up
 env -i HOME="${HOME}" PATH="/usr/local/bin:/usr/bin:/bin" \
     bash -c 'cd "$1" && source ./env.sh >/dev/null 2>&1; env' _ "${workarea}" \
-    | grep -E '^(PYTHONPATH|LD_LIBRARY_PATH|PATH)=' > "${workarea}/vscode.env.tmp"
+    | grep -E '^(PYTHONPATH|LD_LIBRARY_PATH|PATH|DUNEDAQ_[A-Z_]*PATH)=' > "${workarea}/vscode.env.tmp"
 
 if ! grep -q '^PYTHONPATH=' "${workarea}/vscode.env.tmp"; then
     rm -f "${workarea}/vscode.env.tmp"

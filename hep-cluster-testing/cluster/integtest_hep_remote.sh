@@ -12,7 +12,8 @@
 #   apptainer/{tmp,cache}         apptainer's build space
 #   workspaces/<release>_<prof>/  dbt work areas, created on first use and
 #                                 reused; .integtest-baseline records each
-#                                 repo's commit at creation
+#                                 repo's commit at creation, .integtest-built
+#                                 the commits of the last successful build
 #   integtest/pytest/             pytest output (--tmpdir of the bundle script)
 #   integtest/runs/<run-id>/      console log, junit XML and summary per run
 #
@@ -229,13 +230,21 @@ repo_dir_for() {
 }
 
 # Every repo goes to its requested ref, or back to its baseline commit.
-# Sets CHANGED_SOURCE / CHANGED_PYTHON to the repos whose HEAD moved.
+# Sets CHANGED_SOURCE / CHANGED_PYTHON to the repos now at a different commit
+# from the last successful build (.integtest-built, written by
+# record_built_commits). Comparing with the checkout before this one instead
+# would skip the rebuild on the run after a failed build.
 checkout_repos() {
-    local -A wanted=()
+    local -A wanted=() built=()
     local entry name ref dir
     while IFS='=' read -r name ref; do
         wanted[${name}]="${ref}"
     done < "${WORKSPACE_DIR}/.integtest-baseline"
+    if [[ -f "${WORKSPACE_DIR}/.integtest-built" ]]; then
+        while IFS='=' read -r name ref; do
+            built[${name}]="${ref}"
+        done < "${WORKSPACE_DIR}/.integtest-built"
+    fi
     for entry in "${REPO_REFS[@]}"; do
         name="${entry%%=*}"
         repo_dir_for "${name}" >/dev/null \
@@ -257,7 +266,8 @@ checkout_repos() {
             || die "Could not check out ${ref} in ${name} (is it pushed?)"
         after="$(git -C "${dir}" rev-parse HEAD)"
         log "${name}: ${ref} -> ${after:0:12}"
-        [[ "${before}" == "${after}" ]] && continue
+        # Work areas from before .integtest-built existed: HEAD was built
+        [[ "${built[${name}]:-${before}}" == "${after}" ]] && continue
         if [[ "${dir}" == */pythoncode/* ]]; then
             CHANGED_PYTHON+=("${name}")
         else
@@ -278,6 +288,17 @@ rebuild() {
         log "Reinstalling ${name} (pip install -e)..."
         pip install --quiet -e "$(repo_dir_for "${name}")" || die "pip install -e ${name} failed"
     done
+}
+
+# Only after rebuild succeeds: a failed build leaves the old record, so the
+# next run builds again
+record_built_commits() {
+    local dir
+    for dir in "${WORKSPACE_DIR}"/pythoncode/*/ "${WORKSPACE_DIR}"/sourcecode/*/; do
+        [[ -d "${dir}.git" ]] || continue
+        echo "$(basename "${dir}")=$(git -C "${dir}" rev-parse HEAD)"
+    done > "${WORKSPACE_DIR}/.integtest-built.tmp" \
+        && mv "${WORKSPACE_DIR}/.integtest-built.tmp" "${WORKSPACE_DIR}/.integtest-built"
 }
 
 # The image lacks ps and jq, which drunc's CI installs as root: drunc's
@@ -374,6 +395,7 @@ in_container() {
     # shellcheck source=/dev/null
     source env.sh >/dev/null 2>&1 || die "Failed to source ${WORKSPACE_DIR}/env.sh"
     rebuild
+    record_built_commits
     for dir in "${WORKSPACE_DIR}"/pythoncode/*/ "${WORKSPACE_DIR}"/sourcecode/*/; do
         echo "$(basename "${dir}") $(git -C "${dir}" rev-parse HEAD)"
     done > "${RUN_DIR}/commits.txt"
