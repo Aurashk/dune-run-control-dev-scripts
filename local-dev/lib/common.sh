@@ -173,7 +173,8 @@ ensure_clean_env() {
 #
 # parse_args <nightly|release> "$@"
 #
-# Sets PROFILE, WORKSPACE_NAME, WORKSPACES_DIR, PIN, RELEASE_BASE, RELEASE_TAG.
+# Sets PROFILE, WORKSPACE_NAME, WORKSPACES_DIR, PIN, RELEASE_BASE, RELEASE_TAG,
+# BUILD_JOBS.
 # -----------------------------------------------------------------------------
 usage() {
     local mode="$1"
@@ -198,6 +199,8 @@ Options:
   -n, --name NAME        Workspace directory name (default: <release>_<profile>)
   -o, --output-dir DIR   Where to create the workspace
                          (default: \$DRUNC_WORKSPACES_DIR or local-dev/workspaces)
+  -j, --jobs N           Parallel build jobs for dbt-build (default: one per
+                         CPU; lower it if the build runs out of memory)
 EOF
     if [[ "${mode}" == nightly ]]; then
         echo "      --pin              Check out the commits the nightly was built from"
@@ -225,6 +228,7 @@ parse_args() {
     WORKSPACE_NAME=""
     WORKSPACES_DIR="${DEFAULT_WORKSPACES_DIR}"
     RELEASE_TAG=""
+    BUILD_JOBS=""
     local list_releases=false
 
     if [[ "${mode}" == nightly ]]; then
@@ -240,6 +244,10 @@ parse_args() {
             -p|--profile)    [[ $# -ge 2 ]] || die "$1 needs a value"; PROFILE="$2"; shift 2 ;;
             -n|--name)       [[ $# -ge 2 ]] || die "$1 needs a value"; WORKSPACE_NAME="$2"; shift 2 ;;
             -o|--output-dir) [[ $# -ge 2 ]] || die "$1 needs a value"; WORKSPACES_DIR="$2"; shift 2 ;;
+            -j|--jobs)
+                [[ $# -ge 2 && "$2" =~ ^[1-9][0-9]*$ ]] || die "$1 needs a positive number"
+                BUILD_JOBS="$2"
+                shift 2 ;;
             --pin)           PIN=true; shift ;;
             --no-pin)        PIN=false; shift ;;
             --list-profiles) list_profiles; exit 0 ;;
@@ -357,8 +365,10 @@ clone_profile_repos() {
 # dbt-build's own Python step does a non-editable "pip install pythoncode/<repo>",
 # so skip it and install the Python repos editable instead.
 build_workspace() {
-    log "Building work area (dbt-build --skip-python-install)..."
-    dbt-build --skip-python-install || die "dbt-build failed"
+    local jobs=()
+    [[ -n "${BUILD_JOBS}" ]] && jobs=(-j "${BUILD_JOBS}")
+    log "Building work area (dbt-build --skip-python-install ${jobs[*]})..."
+    dbt-build --skip-python-install "${jobs[@]}" || die "dbt-build failed"
 
     local repo
     for repo in "${PYTHON_REPOS[@]}"; do

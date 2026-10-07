@@ -36,8 +36,9 @@ host. Rootless podman creates them as your user.
 # Latest nightly, default profile (drunc-minimal)
 ./drunc_dev_latest_nightly.sh
 
-# Latest nightly with drunc's built dependencies too
-./drunc_dev_latest_nightly.sh --profile drunc-full
+# Latest nightly with drunc's built dependencies too, with 2 build jobs
+# (dbt-build defaults to one per CPU, which can run out of memory)
+./drunc_dev_latest_nightly.sh --profile drunc-full -j 2
 
 # A stable release; repos are checked out at the commits it was built from
 ./drunc_dev_release.sh --list
@@ -213,11 +214,9 @@ Linux distribution doesn't matter.
 - You need to run `dbt-build` in order to run boot on unified shell (the
   scripts do this for you).
 
-### Setting up on the HEP cluster
+### Running the integration tests on a cluster
 
-The scripts need `lib/`, `profiles/`, `templates/` and `.devcontainer/`, so copy
-the whole directory:
-
-```bash
-rsync -a --exclude workspaces local-dev/ akarimi1@lx04.hep.ph.ic.ac.uk:local-dev/
-```
+[`hep-cluster-testing/run_integtest_hep.sh`](../hep-cluster-testing/README.md)
+runs the integration tests on a cluster node, in this devcontainer's image, at
+the commits checked out in a workspace. It copies these scripts to the cluster
+and creates the work areas there itself.
