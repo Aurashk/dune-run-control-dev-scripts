@@ -46,6 +46,11 @@ the script stops if a repo has uncommitted changes or unpushed commits. Set
 `HEP_DEFAULT_WORKSPACE` in `hep.conf` to test a workspace when you give no
 `-w` or `-r`.
 
+The cluster builds with 8 parallel jobs by default (`HEP_BUILD_JOBS` in
+`hep.conf`). Login nodes cap memory per user, and one compile per CPU gets the
+compiler OOM-killed (`g++: fatal error: Killed signal terminated program
+cc1plus`).
+
 The exit code is 0 only if every test passed. It comes from the junit XML,
 because `daqsystemtest_integtest_bundle.sh` exits 0 even when tests fail.
 

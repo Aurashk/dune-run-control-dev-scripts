@@ -30,8 +30,9 @@
 #      junit XML (the bundle script's own exit code doesn't reflect failures)
 #
 # Usage: integtest_hep_remote.sh --storage-dir DIR --run-id ID [--release TAG]
-#            [--base TYPE] [--profile NAME] [--repo NAME=REF]...
+#            [--base TYPE] [--profile NAME] [--jobs N] [--repo NAME=REF]...
 #            [-- <bundle options>]
+#   --jobs sets dbt-build's parallel jobs (default: one per CPU).
 #   REF is anything git can check out after fetching origin, e.g.
 #   origin/<user>/my-feature or a commit hash.
 # =============================================================================
@@ -68,6 +69,7 @@ RUN_ID=""
 RELEASE_TAG="last_fddaq"
 RELEASE_BASE="nightly"
 PROFILE="drunc-minimal"
+BUILD_JOBS=""
 REPO_REFS=()
 BUNDLE_ARGS=()
 
@@ -79,6 +81,9 @@ while [[ $# -gt 0 ]]; do
         --release) [[ $# -ge 2 ]] || die "$1 needs a value"; RELEASE_TAG="$2"; shift 2 ;;
         --base)    [[ $# -ge 2 ]] || die "$1 needs a value"; RELEASE_BASE="$2"; shift 2 ;;
         --profile) [[ $# -ge 2 ]] || die "$1 needs a value"; PROFILE="$2"; shift 2 ;;
+        --jobs)
+            [[ $# -ge 2 && "$2" =~ ^[1-9][0-9]*$ ]] || die "$1 needs a positive number"
+            BUILD_JOBS="$2"; shift 2 ;;
         --repo)
             [[ $# -ge 2 && "$2" == ?*=?* ]] || die "--repo needs NAME=REF"
             REPO_REFS+=("$2"); shift 2 ;;
@@ -93,6 +98,8 @@ WORKSPACES_DIR="${STORAGE_DIR}/workspaces"
 INTEGTEST_DIR="${STORAGE_DIR}/integtest"
 PYTEST_TMPDIR="${INTEGTEST_DIR}/pytest"
 RUN_DIR="${INTEGTEST_DIR}/runs/${RUN_ID}"
+JOBS_ARGS=()
+[[ -n "${BUILD_JOBS}" ]] && JOBS_ARGS=(-j "${BUILD_JOBS}")
 
 # =============================================================================
 # Host phase: image, SSH key and client config, then re-run in the container
@@ -210,7 +217,7 @@ ensure_workspace() {
         [[ -e "${WORKSPACE_DIR}" ]] && die "${WORKSPACE_DIR} exists but was not completed; remove it and re-run"
         log "Creating work area ${WORKSPACE_DIR##*/} (first run for this release, takes a while)..."
         bash "${LOCAL_DEV_DIR}/drunc_dev_release.sh" --base "${RELEASE_BASE}" "${RELEASE_NAME}" \
-            --profile "${PROFILE}" --output-dir "${WORKSPACES_DIR}" \
+            --profile "${PROFILE}" --output-dir "${WORKSPACES_DIR}" "${JOBS_ARGS[@]}" \
             || die "Work area creation failed"
         local repo_dir
         for repo_dir in "${WORKSPACE_DIR}"/pythoncode/*/ "${WORKSPACE_DIR}"/sourcecode/*/; do
@@ -281,8 +288,8 @@ checkout_repos() {
 rebuild() {
     local name
     if [[ ${#CHANGED_SOURCE[@]} -gt 0 ]]; then
-        log "Rebuilding (${CHANGED_SOURCE[*]} changed): dbt-build --skip-python-install"
-        dbt-build --skip-python-install || die "dbt-build failed"
+        log "Rebuilding (${CHANGED_SOURCE[*]} changed): dbt-build --skip-python-install ${JOBS_ARGS[*]}"
+        dbt-build --skip-python-install "${JOBS_ARGS[@]}" || die "dbt-build failed"
     fi
     for name in "${CHANGED_PYTHON[@]}"; do
         log "Reinstalling ${name} (pip install -e)..."
