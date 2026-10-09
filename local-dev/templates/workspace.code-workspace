@@ -9,6 +9,8 @@
     { "name": "workarea", "path": "." }
   ],
   "settings": {
+    // Disabled by default, as Pylance is very resource-intensive in this workspace.
+    "python.languageServer": "None",
     "python.defaultInterpreterPath": "@WORKSPACE_DIR@/.venv/bin/python",
     // DAQ PATH/PYTHONPATH/LD_LIBRARY_PATH, written by .devcontainer/write-vscode-env.sh
     "python.envFile": "@WORKSPACE_DIR@/vscode.env",
