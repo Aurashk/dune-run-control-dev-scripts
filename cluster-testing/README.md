@@ -1,53 +1,58 @@
 # Integration tests on a cluster
 
-`run_integtest_hep.sh` runs the DAQ integration tests (by default the minimal
+`run_integtest_cluster.sh` runs the DAQ integration tests (by default the minimal
 system quick test) on a cluster login node, inside the same Alma 9 image as the
 local-dev devcontainer, at commits you choose: the ones checked out in a local
 workspace, or named branches.
 
 ```
-hep-cluster-testing/
-  run_integtest_hep.sh           run from your machine
-  cluster/integtest_hep_remote.sh   runs on the cluster (started for you)
-  hep.conf.example               settings template
-  hep.conf                       your settings (git-ignored)
+cluster-testing/
+  run_integtest_cluster.sh       run from your machine
+  cluster/integtest_remote.sh    runs on the cluster (started for you)
+  cluster.conf.example           settings template
+  cluster.conf                   your settings (git-ignored)
   results/<run-id>/              console log, junit XML, summary (git-ignored)
 ```
 
 ## Setup
 
+This has only been tested on `lx04.hep.ph.ic.ac.uk`. Nothing in it is specific
+to that cluster, so it should work elsewhere if the requirements below are met.
+
 The cluster node needs apptainer, `/cvmfs` with the DUNE DAQ repositories,
 outbound access to GitHub and ghcr.io, and a large directory you own. You need
-key-based SSH to it, and rsync on both ends.
+key-based SSH to it, and rsync on both ends. The tests run directly on the node
+you SSH to (no Slurm, HTCondor or other batch submission), and you need a
+writable `~/.ssh` there.
 
 ```bash
-cp hep.conf.example hep.conf
-$EDITOR hep.conf    # HEP_USER, HEP_HOST, HEP_STORAGE_DIR
+cp cluster.conf.example cluster.conf
+$EDITOR cluster.conf    # CLUSTER_USER, CLUSTER_HOST, CLUSTER_STORAGE_DIR
 ```
 
 ## Running
 
 ```bash
 # Every repo at the commit checked out in a local workspace, on its release and profile
-./run_integtest_hep.sh -w ../local-dev/workspaces/<release>_<profile>
+./run_integtest_cluster.sh -w ../local-dev/workspaces/<release>_<profile>
 
 # Named branches, on the latest nightly; other repos at the release's commits
-./run_integtest_hep.sh -r drunc=<user>/my-feature -r druncschema=<user>/my-feature
+./run_integtest_cluster.sh -r drunc=<user>/my-feature -r druncschema=<user>/my-feature
 
 # Other tests: everything after -- goes to daqsystemtest_integtest_bundle.sh
-./run_integtest_hep.sh -w <workspace> -- --stop-on-failure -s core
-./run_integtest_hep.sh -w <workspace> -- --stop-on-failure --pytest-options "--tb=long" -k minimal_system_quick_test
+./run_integtest_cluster.sh -w <workspace> -- --stop-on-failure -s core
+./run_integtest_cluster.sh -w <workspace> -- --stop-on-failure --pytest-options "--tb=long" -k minimal_system_quick_test
 
-./run_integtest_hep.sh --help
+./run_integtest_cluster.sh --help
 ```
 
 Commits must be pushed, since the cluster fetches them from GitHub. With `-w`
 the script stops if a repo has uncommitted changes or unpushed commits. Set
-`HEP_DEFAULT_WORKSPACE` in `hep.conf` to test a workspace when you give no
+`CLUSTER_DEFAULT_WORKSPACE` in `cluster.conf` to test a workspace when you give no
 `-w` or `-r`.
 
-The cluster builds with 8 parallel jobs by default (`HEP_BUILD_JOBS` in
-`hep.conf`). Login nodes cap memory per user, and one compile per CPU gets the
+The cluster builds with 8 parallel jobs by default (`CLUSTER_BUILD_JOBS` in
+`cluster.conf`). Login nodes cap memory per user, and one compile per CPU gets the
 compiler OOM-killed (`g++: fatal error: Killed signal terminated program
 cc1plus`).
 
@@ -56,7 +61,7 @@ because `daqsystemtest_integtest_bundle.sh` exits 0 even when tests fail.
 
 ## What happens on the cluster
 
-Everything lives under `HEP_STORAGE_DIR`:
+Everything lives under `CLUSTER_STORAGE_DIR`:
 
 | Path | Contents |
 | --- | --- |

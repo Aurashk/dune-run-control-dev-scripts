@@ -168,16 +168,19 @@ uncommitted changes.
 The generated `.code-workspace` addresses what made the old shared `local-dev`
 workspace slow:
 
-- **No overlapping folders.** Pylance and the mypy extension start one server
-  per workspace folder. The old workspace also had the whole `local-dev` tree as
-  a folder, so its servers analysed every repo a second time, plus every other
-  nightly's work area (about 39k files). Each workspace now holds one release,
+- **No overlapping folders.** The language server and the mypy extension start
+  one server per workspace folder. The old workspace also had the whole
+  `local-dev` tree as a folder, so its servers analysed every repo a second
+  time, plus every other nightly's work area (about 39k files). Each workspace now holds one release,
   and the `workarea` folder excludes `pythoncode/` and `sourcecode/`.
 - **Build output is excluded.** `build/`, `install/`, `.venv/` and `log/` are
-  kept out of Pylance analysis, the file watcher and search.
+  kept out of the file watcher and search.
 - **C++ uses dbt's compile database.** cpptools reads
   `build/compile_commands.json` instead of parsing the workspace itself, and
   CMake Tools doesn't try to configure `sourcecode/CMakeLists.txt`.
+- **Jedi as the Python language server.** Jedi is chosen as it's lightweight.
+  More resource-intensive language servers (e.g. Pylance) need a good amount
+  of RAM for the workspace to run smoothly.
 
 The Claude Code extension is no longer force-installed in the devcontainer.
 Install it yourself if you want it.
@@ -216,7 +219,7 @@ Linux distribution doesn't matter.
 
 ### Running the integration tests on a cluster
 
-[`hep-cluster-testing/run_integtest_hep.sh`](../hep-cluster-testing/README.md)
+[`cluster-testing/run_integtest_cluster.sh`](../cluster-testing/README.md)
 runs the integration tests on a cluster node, in this devcontainer's image, at
 the commits checked out in a workspace. It copies these scripts to the cluster
 and creates the work areas there itself.

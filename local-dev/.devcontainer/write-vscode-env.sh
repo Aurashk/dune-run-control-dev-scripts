@@ -1,7 +1,7 @@
 #!/bin/bash
 # Snapshot a dbt work area's PATH, PYTHONPATH, LD_LIBRARY_PATH and DUNEDAQ_*PATH
 # (conffwk finds schemas and configs through DUNEDAQ_DB_PATH) into
-# <workarea>/vscode.env. The Python extension (Pylance, test discovery,
+# <workarea>/vscode.env. The Python extension (language server, test discovery,
 # debugger) does not source ~/.bashrc, so it reads them via python.envFile.
 #
 # Usage: write-vscode-env.sh [workarea]   (default: $DUNE_WORKAREA)
