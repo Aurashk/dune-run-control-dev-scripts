@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# integtest_hep_remote.sh — Run DAQ integration tests in the Alma 9 container
+# integtest_remote.sh — Run DAQ integration tests in the Alma 9 container
 # =============================================================================
-# Runs on the cluster, started by ../run_integtest_hep.sh, which copies this
+# Runs on the cluster, started by ../run_integtest_cluster.sh, which copies this
 # repo to <storage-dir>/drunc-dev-scripts first. Everything lives under
-# <storage-dir> (HEP_STORAGE_DIR in hep.conf), because cluster home
+# <storage-dir> (CLUSTER_STORAGE_DIR in cluster.conf), because cluster home
 # directories and /tmp are usually too small:
 #
 #   images/<image>.sif            the devcontainer image, pulled on first use
@@ -29,7 +29,7 @@
 #   5. runs daqsystemtest_integtest_bundle.sh and passes or fails on its
 #      junit XML (the bundle script's own exit code doesn't reflect failures)
 #
-# Usage: integtest_hep_remote.sh --storage-dir DIR --run-id ID [--release TAG]
+# Usage: integtest_remote.sh --storage-dir DIR --run-id ID [--release TAG]
 #            [--base TYPE] [--profile NAME] [--jobs N] [--repo NAME=REF]...
 #            [-- <bundle options>]
 #   --jobs sets dbt-build's parallel jobs (default: one per CPU).
@@ -169,7 +169,7 @@ write_group_file() {
 
 enter_container() {
     command -v apptainer >/dev/null || die "apptainer is not installed on $(hostname -s)"
-    [[ -d "${STORAGE_DIR}" ]] || die "${STORAGE_DIR} does not exist on $(hostname -s) (HEP_STORAGE_DIR in hep.conf)"
+    [[ -d "${STORAGE_DIR}" ]] || die "${STORAGE_DIR} does not exist on $(hostname -s) (CLUSTER_STORAGE_DIR in cluster.conf)"
     mkdir -p "${RUN_DIR}" "${PYTEST_TMPDIR}" "${WORKSPACES_DIR}"
 
     pull_image

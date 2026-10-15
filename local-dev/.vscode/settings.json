@@ -6,11 +6,5 @@
   },
   "search.exclude": {
     "workspaces": true
-  },
-  "python.analysis.exclude": [
-    "**/node_modules",
-    "**/__pycache__",
-    "**/.*",
-    "workspaces"
-  ]
+  }
 }

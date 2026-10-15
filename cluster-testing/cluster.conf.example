@@ -1,0 +1,23 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # read by run_integtest_cluster.sh
+# Settings for run_integtest_cluster.sh. Copy to cluster.conf (git-ignored) and fill in:
+#   cp cluster.conf.example cluster.conf
+
+# Your username on the cluster
+CLUSTER_USER=""
+
+# Login node to run on. Key-based SSH to it must work without a password.
+CLUSTER_HOST=""   # e.g. node.cluster.ac.uk
+
+# A large directory you own on the cluster, mounted on CLUSTER_HOST. It holds the
+# container image (~6 GB), one dbt work area per release (several GB each) and
+# the test output. Home directories and /tmp are usually too small.
+CLUSTER_STORAGE_DIR=""   # e.g. /data/<user>
+
+# Optional: the local workspace to test when neither -w nor -r is given.
+# Absolute, or relative to this directory.
+CLUSTER_DEFAULT_WORKSPACE=""   # e.g. ../local-dev/workspaces/<release>_<profile>
+
+# Optional: parallel dbt-build jobs on the cluster (default: 8). Login nodes
+# cap memory per user (often 16 GiB), and one compile per CPU runs out of it.
+CLUSTER_BUILD_JOBS=""

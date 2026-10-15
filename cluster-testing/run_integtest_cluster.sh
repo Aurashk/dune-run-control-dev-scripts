@@ -1,34 +1,34 @@
 #!/bin/bash
 # =============================================================================
-# run_integtest_hep.sh — Run DAQ integration tests on a cluster, in the Alma 9
+# run_integtest_cluster.sh — Run DAQ integration tests on a cluster, in the Alma 9
 #                        devcontainer image, at the commits you choose
 # =============================================================================
 # Copies this repo's scripts to the cluster and runs
-# cluster/integtest_hep_remote.sh there, which pulls the image, keeps one dbt
+# cluster/integtest_remote.sh there, which pulls the image, keeps one dbt
 # work area per release, checks out the requested commits, rebuilds, and runs
 # daqsystemtest_integtest_bundle.sh in apptainer. The run's console log, junit
 # XML and summary are copied back to results/<run-id>/. The exit code is 0 only
 # if every test passed.
 #
-# Your cluster user, host and storage directory are read from hep.conf next to
-# this script (git-ignored; copy hep.conf.example). See README.md.
+# Your cluster user, host and storage directory are read from cluster.conf next to
+# this script (git-ignored; copy cluster.conf.example). See README.md.
 #
-# Usage:   ./run_integtest_hep.sh [options] [-- <bundle options>]
+# Usage:   ./run_integtest_cluster.sh [options] [-- <bundle options>]
 # Examples:
 #   # Every repo at the commit checked out in a local workspace, on its release
-#   ./run_integtest_hep.sh -w ../local-dev/workspaces/<release>_<profile>
+#   ./run_integtest_cluster.sh -w ../local-dev/workspaces/<release>_<profile>
 #
 #   # Branches by name, on the latest nightly
-#   ./run_integtest_hep.sh -r drunc=<user>/my-feature -r druncschema=<user>/my-feature
+#   ./run_integtest_cluster.sh -r drunc=<user>/my-feature -r druncschema=<user>/my-feature
 #
 #   # The core suite instead of the minimal system quick test
-#   ./run_integtest_hep.sh -w <workspace> -- --stop-on-failure -s core
+#   ./run_integtest_cluster.sh -w <workspace> -- --stop-on-failure -s core
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONFIG_FILE="${HEP_CONFIG:-${SCRIPT_DIR}/hep.conf}"
+CONFIG_FILE="${CLUSTER_CONFIG:-${SCRIPT_DIR}/cluster.conf}"
 RESULTS_DIR="${SCRIPT_DIR}/results"
 DEFAULT_BUNDLE_ARGS=(--stop-on-failure -k minimal_system_quick_test)
 
@@ -54,7 +54,7 @@ Usage: $(basename "$0") [options] [-- <bundle options>]
 Options:
   -w, --workspace DIR    Test every repo in this local workspace at its checked
                          out commit, on the workspace's release and profile
-                         (default: HEP_DEFAULT_WORKSPACE from hep.conf, if set
+                         (default: CLUSTER_DEFAULT_WORKSPACE from cluster.conf, if set
                          and no -r is given)
   -r, --repo NAME=BRANCH Test NAME at origin/BRANCH (repeatable; overrides -w)
       --release TAG      DAQ release (default: the workspace's, else last_fddaq)
@@ -70,7 +70,7 @@ Bundle options go to daqsystemtest_integtest_bundle.sh; the default is:
 --junit-xml and --tmpdir are always added.
 
 Settings are read from ${CONFIG_FILE}
-(override the path with HEP_CONFIG); see hep.conf.example.
+(override the path with CLUSTER_CONFIG); see cluster.conf.example.
 EOF
 }
 
@@ -102,30 +102,30 @@ done
 [[ ${#BUNDLE_ARGS[@]} -gt 0 ]] || BUNDLE_ARGS=("${DEFAULT_BUNDLE_ARGS[@]}")
 
 # -----------------------------------------------------------------------------
-# Settings (hep.conf)
+# Settings (cluster.conf)
 # -----------------------------------------------------------------------------
 [[ -f "${CONFIG_FILE}" ]] \
-    || die "No settings file ${CONFIG_FILE}; create it with: cp ${SCRIPT_DIR}/hep.conf.example ${SCRIPT_DIR}/hep.conf"
-HEP_USER=""
-HEP_HOST=""
-HEP_STORAGE_DIR=""
-HEP_DEFAULT_WORKSPACE=""
-HEP_BUILD_JOBS=""
-# shellcheck source=hep.conf.example
+    || die "No settings file ${CONFIG_FILE}; create it with: cp ${SCRIPT_DIR}/cluster.conf.example ${SCRIPT_DIR}/cluster.conf"
+CLUSTER_USER=""
+CLUSTER_HOST=""
+CLUSTER_STORAGE_DIR=""
+CLUSTER_DEFAULT_WORKSPACE=""
+CLUSTER_BUILD_JOBS=""
+# shellcheck source=cluster.conf.example
 source "${CONFIG_FILE}"
-for setting in HEP_USER HEP_HOST HEP_STORAGE_DIR; do
+for setting in CLUSTER_USER CLUSTER_HOST CLUSTER_STORAGE_DIR; do
     [[ -n "${!setting}" ]] || die "${setting} is not set in ${CONFIG_FILE}"
 done
-HEP_BUILD_JOBS="${HEP_BUILD_JOBS:-8}"
-[[ "${HEP_BUILD_JOBS}" =~ ^[1-9][0-9]*$ ]] || die "HEP_BUILD_JOBS must be a positive number"
-REMOTE_TARGET="${HEP_USER}@${HEP_HOST}"
-REMOTE_SCRIPTS_DIR="${HEP_STORAGE_DIR}/drunc-dev-scripts"
+CLUSTER_BUILD_JOBS="${CLUSTER_BUILD_JOBS:-8}"
+[[ "${CLUSTER_BUILD_JOBS}" =~ ^[1-9][0-9]*$ ]] || die "CLUSTER_BUILD_JOBS must be a positive number"
+REMOTE_TARGET="${CLUSTER_USER}@${CLUSTER_HOST}"
+REMOTE_SCRIPTS_DIR="${CLUSTER_STORAGE_DIR}/drunc-dev-scripts"
 
-if [[ -z "${WORKSPACE}" && ${#REFS[@]} -eq 0 && -n "${HEP_DEFAULT_WORKSPACE}" ]]; then
-    # Relative to this directory, like the other paths in hep.conf
-    WORKSPACE="$(cd "${SCRIPT_DIR}" && cd "${HEP_DEFAULT_WORKSPACE}" && pwd)" \
-        || die "HEP_DEFAULT_WORKSPACE ${HEP_DEFAULT_WORKSPACE} not found"
-    info "Using HEP_DEFAULT_WORKSPACE: ${WORKSPACE}"
+if [[ -z "${WORKSPACE}" && ${#REFS[@]} -eq 0 && -n "${CLUSTER_DEFAULT_WORKSPACE}" ]]; then
+    # Relative to this directory, like the other paths in cluster.conf
+    WORKSPACE="$(cd "${SCRIPT_DIR}" && cd "${CLUSTER_DEFAULT_WORKSPACE}" && pwd)" \
+        || die "CLUSTER_DEFAULT_WORKSPACE ${CLUSTER_DEFAULT_WORKSPACE} not found"
+    info "Using CLUSTER_DEFAULT_WORKSPACE: ${WORKSPACE}"
 fi
 
 # -----------------------------------------------------------------------------
@@ -184,7 +184,7 @@ if [[ -n "${WORKSPACE}" ]]; then
 fi
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
-remote_args=(--storage-dir "${HEP_STORAGE_DIR}" --run-id "${RUN_ID}" --jobs "${HEP_BUILD_JOBS}")
+remote_args=(--storage-dir "${CLUSTER_STORAGE_DIR}" --run-id "${RUN_ID}" --jobs "${CLUSTER_BUILD_JOBS}")
 [[ -n "${RELEASE_TAG}" ]]  && remote_args+=(--release "${RELEASE_TAG}")
 [[ -n "${RELEASE_BASE}" ]] && remote_args+=(--base "${RELEASE_BASE}")
 [[ -n "${PROFILE}" ]]      && remote_args+=(--profile "${PROFILE}")
@@ -202,24 +202,24 @@ timeout 10 ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=acc
         "${REMOTE_TARGET}" exit 2>/dev/null \
     || die "Cannot reach ${REMOTE_TARGET} via SSH. Is your key loaded (ssh-add), and are you on the right network or VPN?"
 
-log "Copying scripts to ${HEP_HOST}:${REMOTE_SCRIPTS_DIR}..."
+log "Copying scripts to ${CLUSTER_HOST}:${REMOTE_SCRIPTS_DIR}..."
 ssh "${REMOTE_TARGET}" "mkdir -p '${REMOTE_SCRIPTS_DIR}'"
-rsync -a --delete --exclude 'workspaces/' --exclude 'results/' --exclude 'hep.conf' \
-    "${REPO_DIR}/local-dev" "${REPO_DIR}/hep-cluster-testing" \
+rsync -a --delete --exclude 'workspaces/' --exclude 'results/' --exclude 'cluster.conf' \
+    "${REPO_DIR}/local-dev" "${REPO_DIR}/cluster-testing" \
     "${REMOTE_TARGET}:${REMOTE_SCRIPTS_DIR}/"
 
-log "Run ${RUN_ID} on ${HEP_HOST}"
+log "Run ${RUN_ID} on ${CLUSTER_HOST}"
 set +e
 # shellcheck disable=SC2029  # expanded locally on purpose, quoted with %q
 ssh -t "${REMOTE_TARGET}" \
-    "bash ${REMOTE_SCRIPTS_DIR}/hep-cluster-testing/cluster/integtest_hep_remote.sh $(printf '%q ' "${remote_args[@]}")"
+    "bash ${REMOTE_SCRIPTS_DIR}/cluster-testing/cluster/integtest_remote.sh $(printf '%q ' "${remote_args[@]}")"
 status=$?
 set -e
 
 log "Copying results to ${RESULTS_DIR}/${RUN_ID}..."
 mkdir -p "${RESULTS_DIR}"
 rsync -a --exclude 'sshd_host_key*' \
-    "${REMOTE_TARGET}:${HEP_STORAGE_DIR}/integtest/runs/${RUN_ID}" "${RESULTS_DIR}/" \
+    "${REMOTE_TARGET}:${CLUSTER_STORAGE_DIR}/integtest/runs/${RUN_ID}" "${RESULTS_DIR}/" \
     || warn "Could not copy the results back"
 
 if [[ ${status} -eq 0 ]]; then
