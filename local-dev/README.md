@@ -138,6 +138,7 @@ PYTHON_REPOS=("drunc[dev]") # cloned into pythoncode/, pip install -e (extras in
 | --- | --- |
 | `drunc-minimal` (default) | drunc, druncschema, daqsystemtest |
 | `drunc-full` | drunc-minimal + conffwk, confmodel, opmonlib, kafkaopmon, daqconf |
+| `drunc-ui` | drunc_ui[dev,docs], druncschema |
 
 `drunc-full` adds the dbt-built packages drunc imports at runtime. To add a
 profile, create a new file in `profiles/`; both scripts pick it up automatically.
