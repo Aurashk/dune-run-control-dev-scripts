@@ -68,6 +68,7 @@ Everything lives under `CLUSTER_STORAGE_DIR`:
 | `drunc-dev-scripts/` | this repo's scripts, copied on every run |
 | `images/` | the devcontainer image |
 | `tools/` | `ps` and `jq`, which the image lacks, unpacked from their RPMs |
+| `tmp/` | `TMPDIR` inside the container, so compiler temp files do not fill the node's small shared `/tmp` |
 | `workspaces/<release>_<profile>/` | dbt work areas, created on first use and reused |
 | `integtest/pytest/` | pytest output (`--tmpdir`) |
 | `integtest/runs/<run-id>/` | per-run logs, copied back to `results/` |

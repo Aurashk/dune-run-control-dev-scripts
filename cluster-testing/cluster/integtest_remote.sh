@@ -97,6 +97,9 @@ done
 WORKSPACES_DIR="${STORAGE_DIR}/workspaces"
 INTEGTEST_DIR="${STORAGE_DIR}/integtest"
 PYTEST_TMPDIR="${INTEGTEST_DIR}/pytest"
+# Compiler and tool temp files. The node's /tmp is shared and often only ~1 GB,
+# and parallel g++ jobs fill it ("No space left on device").
+CONTAINER_TMPDIR="${STORAGE_DIR}/tmp"
 RUN_DIR="${INTEGTEST_DIR}/runs/${RUN_ID}"
 JOBS_ARGS=()
 [[ -n "${BUILD_JOBS}" ]] && JOBS_ARGS=(-j "${BUILD_JOBS}")
@@ -170,7 +173,7 @@ write_group_file() {
 enter_container() {
     command -v apptainer >/dev/null || die "apptainer is not installed on $(hostname -s)"
     [[ -d "${STORAGE_DIR}" ]] || die "${STORAGE_DIR} does not exist on $(hostname -s) (CLUSTER_STORAGE_DIR in cluster.conf)"
-    mkdir -p "${RUN_DIR}" "${PYTEST_TMPDIR}" "${WORKSPACES_DIR}"
+    mkdir -p "${RUN_DIR}" "${PYTEST_TMPDIR}" "${WORKSPACES_DIR}" "${CONTAINER_TMPDIR}"
 
     pull_image
     ensure_ssh_key
@@ -191,6 +194,7 @@ enter_container() {
         --env "INTEGTEST_SSHD_PORT=${port}" \
         --env "INTEGTEST_TOOLS_DIR=${STORAGE_DIR}/tools/$(basename "${SIF}" .sif)" \
         --env "TERM=${TERM:-dumb}" \
+        --env "TMPDIR=${CONTAINER_TMPDIR}" \
         "${SIF}" bash "$(readlink -f "$0")" "${ALL_ARGS[@]}"
 }
 
